@@ -1,7 +1,6 @@
-- 👋 Hi, I’m @Corey-G11
-- 👀 I’m interested in changing career fields and doing some freelance work.
-- 🌱 I’m currently learning HTML,CSS and JavaScript.
-- 💞️ I’m looking to collaborate on building webpages.
+- 👋 Hi, I’m Corey Falls
+- 👀 I’m interested in changing career fields.
+- 🌱 I’m currently know HTML, CSS, and Javascript. Im also in the process of learning React, Node.js, and Mongodb.
 - 📫 How to reach me: cgcodesjs@gmail.com
 
 <!---
