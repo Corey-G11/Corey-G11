@@ -1,6 +1,6 @@
 - 👋 Hi, I’m Corey Falls
-- 👀 I’m interested in changing career fields.
-- 🌱 I’m currently know HTML, CSS, and Javascript. Im also in the process of learning React, Node.js, and Mongodb.
+- 👀 I’m interested in changing career fields from retail into tech, as a frontend developer.
+- 🌱 I currently know HTML, CSS, and Javascript. Im also in the process of learning React, Node.js, and Mongodb.
 - 📫 How to reach me: cgcodesjs@gmail.com
 
 <!---
