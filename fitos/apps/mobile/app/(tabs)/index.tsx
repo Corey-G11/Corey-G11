@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { theme } from '../../src/theme';
 import { useSession } from '../../src/store/session.store';
 import {
@@ -68,9 +68,12 @@ export default function DashboardScreen(): React.JSX.Element {
     }
   }, [token]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Reload whenever the dashboard regains focus (e.g. after a weigh-in).
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -154,6 +157,13 @@ export default function DashboardScreen(): React.JSX.Element {
           />
         </View>
 
+        <Pressable
+          style={styles.logWeightButton}
+          onPress={() => router.push('/log-weight')}
+        >
+          <Text style={styles.logWeightText}>＋ Log weight</Text>
+        </Pressable>
+
         <WeightChart entries={biometrics} />
 
         <CoachCard
@@ -208,6 +218,19 @@ const styles = StyleSheet.create({
   statRow: {
     flexDirection: 'row',
     gap: theme.spacing.md,
+  },
+  logWeightButton: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+  },
+  logWeightText: {
+    color: theme.colors.emerald,
+    fontSize: 14,
+    fontWeight: '600',
   },
   error: {
     color: theme.colors.red,
