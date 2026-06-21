@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "FitOS",
+    "slug": "fitos",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "fitos",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.fitos.mobile"
+    },
+    "android": {
+      "package": "app.fitos.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
