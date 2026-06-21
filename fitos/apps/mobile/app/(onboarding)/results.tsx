@@ -99,7 +99,7 @@ export default function Results(): React.JSX.Element {
       <View style={styles.footer}>
         <Button
           label="Start My Journey →"
-          onPress={() => router.push('/home')}
+          onPress={() => router.replace('/(tabs)')}
         />
       </View>
     </SafeAreaView>
