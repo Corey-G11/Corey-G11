@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import type { AuthResponse, MacroTargets, OnboardingData } from '@fitos/shared';
 import { OnboardingLayout } from '../../src/components/OnboardingLayout';
 import { useOnboarding } from '../../src/store/onboarding.store';
+import { useSession } from '../../src/store/session.store';
 import { apiPost } from '../../src/api/client';
 import { theme } from '../../src/theme';
 
@@ -85,6 +86,7 @@ function ChipInput({
 export default function Step4Food(): React.JSX.Element {
   const router = useRouter();
   const { data, setFields, setMacros, setAccessToken } = useOnboarding();
+  const { setToken } = useSession();
 
   const [likes, setLikes] = useState<string[]>(data.foodLikes ?? []);
   const [dislikes, setDislikes] = useState<string[]>(data.foodDislikes ?? []);
@@ -179,6 +181,7 @@ export default function Step4Food(): React.JSX.Element {
         });
       }
       setAccessToken(auth.accessToken);
+      await setToken(auth.accessToken);
 
       const macros = await apiPost<MacroTargets>(
         '/onboarding',
