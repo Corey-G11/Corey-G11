@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -33,8 +34,13 @@ function formatDelta(delta: number | null): string {
 }
 
 export default function DashboardScreen(): React.JSX.Element {
-  const { token } = useSession();
+  const { token, signOut } = useSession();
   const router = useRouter();
+
+  const onSignOut = useCallback(async () => {
+    await signOut();
+    router.replace('/(auth)/login');
+  }, [signOut, router]);
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [biometrics, setBiometrics] = useState<Biometric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +113,12 @@ export default function DashboardScreen(): React.JSX.Element {
           />
         }
       >
-        <Text style={styles.logo}>FitOS</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.logo}>FitOS</Text>
+          <Pressable onPress={() => void onSignOut()} hitSlop={8}>
+            <Text style={styles.signOut}>Sign out</Text>
+          </Pressable>
+        </View>
         <Text style={styles.greeting}>Today</Text>
         {goals ? (
           <Text style={styles.goalLabel}>
@@ -169,11 +180,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: theme.spacing.lg,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   logo: {
     fontFamily: 'monospace',
     color: theme.colors.emerald,
     fontSize: 16,
     fontWeight: '700',
+  },
+  signOut: {
+    color: theme.colors.muted,
+    fontSize: 13,
   },
   greeting: {
     color: theme.colors.white,

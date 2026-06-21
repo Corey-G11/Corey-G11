@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import type { AuthResponse, MacroTargets, OnboardingData } from '@fitos/shared';
+import type { MacroTargets, OnboardingData } from '@fitos/shared';
 import { OnboardingLayout } from '../../src/components/OnboardingLayout';
 import { useOnboarding } from '../../src/store/onboarding.store';
 import { useSession } from '../../src/store/session.store';
@@ -24,9 +24,6 @@ const DIETARY_OPTIONS = [
   'Halal',
   'Kosher',
 ];
-
-const TEMP_EMAIL = 'user@fitos.app';
-const TEMP_PASSWORD = 'FitOS2024!';
 
 interface ChipInputProps {
   label: string;
@@ -85,8 +82,8 @@ function ChipInput({
 
 export default function Step4Food(): React.JSX.Element {
   const router = useRouter();
-  const { data, setFields, setMacros, setAccessToken } = useOnboarding();
-  const { setToken } = useSession();
+  const { data, setFields, setMacros } = useOnboarding();
+  const { token } = useSession();
 
   const [likes, setLikes] = useState<string[]>(data.foodLikes ?? []);
   const [dislikes, setDislikes] = useState<string[]>(data.foodDislikes ?? []);
@@ -162,32 +159,17 @@ export default function Step4Food(): React.JSX.Element {
       return;
     }
 
+    if (!token) {
+      // Shouldn't happen — auth precedes onboarding — but guard anyway.
+      setError('Your session expired. Please sign in again.');
+      router.replace('/(auth)/login');
+      return;
+    }
+
     setLoading(true);
     setError(undefined);
     try {
-      // Temporary auth — dedicated auth screens land in a Phase 1 extension.
-      let auth: AuthResponse;
-      try {
-        auth = await apiPost<AuthResponse>('/auth/register', {
-          email: TEMP_EMAIL,
-          password: TEMP_PASSWORD,
-          firstName: payload.firstName,
-        });
-      } catch {
-        // Likely already registered — fall back to login.
-        auth = await apiPost<AuthResponse>('/auth/login', {
-          email: TEMP_EMAIL,
-          password: TEMP_PASSWORD,
-        });
-      }
-      setAccessToken(auth.accessToken);
-      await setToken(auth.accessToken);
-
-      const macros = await apiPost<MacroTargets>(
-        '/onboarding',
-        payload,
-        auth.accessToken,
-      );
+      const macros = await apiPost<MacroTargets>('/onboarding', payload, token);
       setMacros(macros);
       router.push('/(onboarding)/results');
     } catch (e) {

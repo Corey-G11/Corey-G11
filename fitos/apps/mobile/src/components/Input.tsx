@@ -15,6 +15,8 @@ interface InputProps {
   error?: string;
   keyboardType?: KeyboardTypeOptions;
   placeholder?: string;
+  secureTextEntry?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 export function Input({
@@ -24,8 +26,14 @@ export function Input({
   error,
   keyboardType,
   placeholder,
+  secureTextEntry,
+  autoCapitalize,
 }: InputProps): React.JSX.Element {
   const [focused, setFocused] = useState(false);
+
+  const resolvedAutoCapitalize =
+    autoCapitalize ??
+    (secureTextEntry || keyboardType === 'email-address' ? 'none' : 'sentences');
 
   return (
     <View style={styles.container}>
@@ -36,6 +44,9 @@ export function Input({
         keyboardType={keyboardType}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.muted}
+        secureTextEntry={secureTextEntry}
+        autoCapitalize={resolvedAutoCapitalize}
+        autoCorrect={!secureTextEntry}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[
