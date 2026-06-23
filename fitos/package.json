@@ -1,0 +1,18 @@
+{
+  "name": "fitos",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=apps/api",
+    "dev:mobile": "npm run start --workspace=apps/mobile",
+    "db:migrate": "ts-node infra/db/migrate.ts",
+    "db:seed": "ts-node infra/db/seed.ts",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2"
+  },
+  "engines": { "node": ">=20.0.0" }
+}
