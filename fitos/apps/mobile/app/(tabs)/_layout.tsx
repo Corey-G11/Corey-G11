@@ -47,6 +47,13 @@ export default function TabsLayout(): React.JSX.Element {
           tabBarIcon: ({ color }) => <TabIcon symbol="🍎" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <TabIcon symbol="◔" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
