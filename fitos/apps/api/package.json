@@ -8,6 +8,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "test": "jest",
+    "test:integration": "jest --config test/jest-integration.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

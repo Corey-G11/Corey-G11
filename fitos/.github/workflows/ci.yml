@@ -24,5 +24,8 @@ jobs:
       - name: Test API
         run: npm test --workspace=apps/api
 
+      - name: Integration test API
+        run: npm run test:integration --workspace=apps/api
+
       - name: Typecheck mobile
         run: npm run typecheck --workspace=apps/mobile
