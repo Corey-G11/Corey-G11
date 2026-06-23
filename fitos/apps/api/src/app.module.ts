@@ -9,6 +9,7 @@ import { WorkoutsModule } from './workouts/workouts.module';
 import { NutritionModule } from './nutrition/nutrition.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CoachModule } from './coach/coach.module';
+import { TemplatesModule } from './templates/templates.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CoachModule } from './coach/coach.module';
     NutritionModule,
     DashboardModule,
     CoachModule,
+    TemplatesModule,
   ],
 })
 export class AppModule {}

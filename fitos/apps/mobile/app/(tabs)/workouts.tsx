@@ -109,6 +109,12 @@ export default function WorkoutsScreen(): React.JSX.Element {
             onPress={startWorkout}
             loading={starting}
           />
+          <View style={styles.startSpacer} />
+          <Button
+            label="Browse Program Templates"
+            variant="ghost"
+            onPress={() => router.push('/programs/templates')}
+          />
         </View>
 
         <Text style={styles.sectionLabel}>Programs</Text>
@@ -205,6 +211,9 @@ const styles = StyleSheet.create({
   },
   startWrap: {
     marginBottom: theme.spacing.lg,
+  },
+  startSpacer: {
+    height: theme.spacing.sm,
   },
   sectionLabel: {
     fontFamily: 'monospace',
