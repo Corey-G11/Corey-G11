@@ -45,7 +45,25 @@ cd apps/mobile && npx expo start
 # press 'i' for the iOS simulator
 ```
 
-Copy `.env.example` to `.env` in `apps/api` and `apps/mobile` and adjust as needed.
+### Environment setup
+
+**API** (`apps/api/`):
+```bash
+copy apps\api\.env.example apps\api\.env   # Windows
+cp apps/api/.env.example apps/api/.env     # Mac/Linux
+```
+Edit `apps/api/.env` and set a strong `JWT_SECRET`.
+
+**Mobile** (`apps/mobile/`):
+```bash
+copy apps\mobile\.env.example apps\mobile\.env.local   # Windows
+cp apps/mobile/.env.example apps/mobile/.env.local     # Mac/Linux
+```
+Edit `apps/mobile/.env.local` and set `EXPO_PUBLIC_API_URL` to your machine's local IP address so the phone can reach the API, e.g.:
+```
+EXPO_PUBLIC_API_URL=http://192.168.1.42:3001
+```
+Find your IP with `ipconfig` (Windows) or `ifconfig` (Mac/Linux). Do **not** use `localhost` — on a physical device that points to the phone itself.
 
 ## What's implemented (Phase 1)
 
