@@ -30,6 +30,21 @@ export interface Recommendation {
   acknowledgedAt: string | null;
 }
 
+export interface Feedback {
+  id: string;
+  recommendationId: string;
+  adherenceScore: number;
+  subjectiveEnergyScore: number | null;
+  userRejectionReason: string | null;
+  systemLearnedWeightDelta: number;
+}
+
+export interface SubmitFeedbackInput {
+  adherenceScore: number;
+  subjectiveEnergyScore?: number;
+  userRejectionReason?: string;
+}
+
 export interface DashboardSnapshot {
   goals: DashboardGoals | null;
   latestWeightKg: number | null;

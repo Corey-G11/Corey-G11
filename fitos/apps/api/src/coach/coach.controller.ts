@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -10,7 +11,8 @@ import {
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
-import { CoachService, Recommendation } from './coach.service';
+import { CoachService, Feedback, Recommendation } from './coach.service';
+import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
 
 @Controller('coach')
 @UseGuards(JwtAuthGuard)
@@ -37,5 +39,22 @@ export class CoachController {
     @Param('id') id: string,
   ): Promise<Recommendation> {
     return this.coachService.acknowledge(req.user.userId, id);
+  }
+
+  @Post('recommendations/:id/feedback')
+  submitFeedback(
+    @Req() req: Request & { user: AuthenticatedUser },
+    @Param('id') id: string,
+    @Body() dto: SubmitFeedbackDto,
+  ): Promise<Feedback> {
+    return this.coachService.submitFeedback(req.user.userId, id, dto);
+  }
+
+  @Get('recommendations/:id/feedback')
+  listFeedback(
+    @Req() req: Request & { user: AuthenticatedUser },
+    @Param('id') id: string,
+  ): Promise<Feedback[]> {
+    return this.coachService.listFeedback(req.user.userId, id);
   }
 }

@@ -3,7 +3,9 @@ import type {
   Biometric,
   CreateBiometricInput,
   DashboardSnapshot,
+  Feedback,
   Recommendation,
+  SubmitFeedbackInput,
 } from './types';
 
 export function fetchDashboard(token: string): Promise<DashboardSnapshot> {
@@ -39,6 +41,18 @@ export function acknowledgeRecommendation(
   return apiPatch<Recommendation>(
     `/coach/recommendations/${id}/acknowledge`,
     {},
+    token,
+  );
+}
+
+export function submitRecommendationFeedback(
+  token: string,
+  id: string,
+  input: SubmitFeedbackInput,
+): Promise<Feedback> {
+  return apiPost<Feedback>(
+    `/coach/recommendations/${id}/feedback`,
+    input,
     token,
   );
 }

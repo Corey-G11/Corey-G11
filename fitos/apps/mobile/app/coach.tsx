@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,8 +17,33 @@ import {
   acknowledgeRecommendation,
   fetchRecommendations,
   generateRecommendation,
+  submitRecommendationFeedback,
 } from '../src/features/dashboard/api';
-import type { Recommendation } from '../src/features/dashboard/types';
+import type {
+  Recommendation,
+  SubmitFeedbackInput,
+} from '../src/features/dashboard/types';
+
+type FeedbackState = 'idle' | 'submitting' | 'done';
+
+// Adherence presets the user taps after acting on a recommendation. A low
+// adherence (or an explicit "Not for me") teaches the coach to ease off.
+const FEEDBACK_OPTIONS: {
+  label: string;
+  input: SubmitFeedbackInput;
+}[] = [
+  { label: 'Followed it', input: { adherenceScore: 1, subjectiveEnergyScore: 4 } },
+  { label: 'Partly', input: { adherenceScore: 0.5, subjectiveEnergyScore: 3 } },
+  { label: 'Struggled', input: { adherenceScore: 0.2, subjectiveEnergyScore: 2 } },
+  {
+    label: 'Not for me',
+    input: {
+      adherenceScore: 0,
+      subjectiveEnergyScore: 1,
+      userRejectionReason: 'Dismissed by user',
+    },
+  },
+];
 
 function formatDate(iso: string): string {
   try {
@@ -37,14 +63,57 @@ function adjustmentLabel(adj: number): string {
   return adj > 0 ? `+${adj} kcal / day` : `${adj} kcal / day`;
 }
 
+function FeedbackSection({
+  recId,
+  state,
+  onFeedback,
+}: {
+  recId: string;
+  state: FeedbackState;
+  onFeedback: (id: string, input: SubmitFeedbackInput) => void;
+}): React.JSX.Element {
+  if (state === 'done') {
+    return (
+      <Text style={styles.feedbackThanks}>
+        Thanks — the coach will tune your next insight.
+      </Text>
+    );
+  }
+  return (
+    <View style={styles.feedbackBlock}>
+      <Text style={styles.feedbackPrompt}>How did it go?</Text>
+      <View style={styles.feedbackRow}>
+        {FEEDBACK_OPTIONS.map((opt) => (
+          <Pressable
+            key={opt.label}
+            style={({ pressed }) => [
+              styles.chip,
+              pressed && styles.chipPressed,
+              state === 'submitting' && styles.chipDisabled,
+            ]}
+            disabled={state === 'submitting'}
+            onPress={() => onFeedback(recId, opt.input)}
+          >
+            <Text style={styles.chipText}>{opt.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function RecommendationItem({
   rec,
   onAcknowledge,
   acknowledging,
+  feedbackState,
+  onFeedback,
 }: {
   rec: Recommendation;
   onAcknowledge: (id: string) => void;
   acknowledging: boolean;
+  feedbackState: FeedbackState;
+  onFeedback: (id: string, input: SubmitFeedbackInput) => void;
 }): React.JSX.Element {
   const action = rec.recommendedAction;
   return (
@@ -69,7 +138,13 @@ function RecommendationItem({
             loading={acknowledging}
           />
         </View>
-      ) : null}
+      ) : (
+        <FeedbackSection
+          recId={rec.id}
+          state={feedbackState}
+          onFeedback={onFeedback}
+        />
+      )}
     </View>
   );
 }
@@ -81,6 +156,7 @@ export default function CoachScreen(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [ackingId, setAckingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, FeedbackState>>({});
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -134,6 +210,26 @@ export default function CoachScreen(): React.JSX.Element {
     [token],
   );
 
+  const onFeedback = useCallback(
+    async (id: string, input: SubmitFeedbackInput) => {
+      if (!token) return;
+      setFeedback((prev) => ({ ...prev, [id]: 'submitting' }));
+      setError(null);
+      try {
+        await submitRecommendationFeedback(token, id, input);
+        setFeedback((prev) => ({ ...prev, [id]: 'done' }));
+      } catch {
+        setError('Could not save your feedback. Try again.');
+        setFeedback((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
+    },
+    [token],
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     void load();
@@ -154,7 +250,8 @@ export default function CoachScreen(): React.JSX.Element {
       >
         <Text style={styles.heading}>AI Coach</Text>
         <Text style={styles.subheading}>
-          Rule-based insights from your goal and recent weight trend.
+          Adaptive insights from your goal and recent weight trend — your
+          feedback tunes how aggressive the next plan is.
         </Text>
 
         <View style={styles.generateButton}>
@@ -183,6 +280,8 @@ export default function CoachScreen(): React.JSX.Element {
               rec={rec}
               onAcknowledge={onAcknowledge}
               acknowledging={ackingId === rec.id}
+              feedbackState={feedback[rec.id] ?? 'idle'}
+              onFeedback={onFeedback}
             />
           ))
         )}
@@ -266,6 +365,47 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   ackButton: {
+    marginTop: theme.spacing.md,
+  },
+  feedbackBlock: {
+    marginTop: theme.spacing.md,
+    borderTopColor: theme.colors.border,
+    borderTopWidth: 1,
+    paddingTop: theme.spacing.md,
+  },
+  feedbackPrompt: {
+    color: theme.colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+  },
+  feedbackRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  chip: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+  },
+  chipPressed: {
+    borderColor: theme.colors.emerald,
+  },
+  chipDisabled: {
+    opacity: 0.5,
+  },
+  chipText: {
+    color: theme.colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  feedbackThanks: {
+    color: theme.colors.emerald,
+    fontSize: 13,
     marginTop: theme.spacing.md,
   },
 });
