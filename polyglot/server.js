@@ -145,6 +145,7 @@ async function handleBuild(req, res) {
 
   const prompt = (payload.prompt || "").toString().trim();
   const language = (payload.language || "auto").toString().trim();
+  const model = (payload.model || "").toString().trim() || MODEL;
 
   if (!prompt) {
     res.writeHead(400, { "Content-Type": "application/json" }).end(
@@ -178,7 +179,7 @@ async function handleBuild(req, res) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         stream: true,
         options: { temperature: 0.3 },
         messages: [
@@ -191,7 +192,7 @@ async function handleBuild(req, res) {
 
     if (!upstream.ok) {
       const text = await upstream.text().catch(() => "");
-      send("error", { message: describeOllamaError(upstream.status, text) });
+      send("error", { message: describeOllamaError(upstream.status, text, model) });
       res.end();
       return;
     }
@@ -213,46 +214,43 @@ async function handleBuild(req, res) {
           continue;
         }
         if (obj.error) {
-          send("error", { message: describeOllamaError(200, obj.error) });
+          send("error", { message: describeOllamaError(200, obj.error, model) });
           res.end();
           return;
         }
         const piece = obj.message?.content;
         if (piece) send("token", { text: piece });
         if (obj.done) {
-          send("done", { model: MODEL, eval_count: obj.eval_count ?? null });
+          send("done", { model, eval_count: obj.eval_count ?? null });
           res.end();
           return;
         }
       }
     }
-    send("done", { model: MODEL });
+    send("done", { model });
   } catch (err) {
     if (err?.name === "AbortError") {
       res.end();
       return;
     }
-    send("error", { message: describeFetchError(err) });
+    send("error", { message: describeFetchError(err, model) });
     console.error("[/api/build]", err?.message || err);
   } finally {
     res.end();
   }
 }
 
-function describeFetchError(err) {
+function describeFetchError(err, model = MODEL) {
   const msg = err?.cause?.code || err?.message || "";
   if (/ECONNREFUSED|fetch failed|ENOTFOUND|ETIMEDOUT/i.test(msg)) {
-    return `Can't reach Ollama at ${OLLAMA_URL}. Install it from https://ollama.com, then run "ollama serve" and "ollama pull ${MODEL}".`;
+    return `Can't reach Ollama at ${OLLAMA_URL}. Install it from https://ollama.com, then run "ollama serve" and "ollama pull ${model}".`;
   }
   return err?.message || "Something went wrong while building.";
 }
 
-function describeOllamaError(status, text) {
-  if (/not found|no such model|try pulling/i.test(text)) {
-    return `The model "${MODEL}" isn't installed. Run: ollama pull ${MODEL}`;
-  }
-  if (status === 404) {
-    return `The model "${MODEL}" isn't installed. Run: ollama pull ${MODEL}`;
+function describeOllamaError(status, text, model = MODEL) {
+  if (status === 404 || /not found|no such model|try pulling/i.test(text)) {
+    return `The model "${model}" isn't installed. Run: ollama pull ${model}`;
   }
   return `Ollama error${status ? ` (${status})` : ""}: ${text || "unknown"}`;
 }

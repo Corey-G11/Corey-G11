@@ -25,22 +25,28 @@
       <div id="banner" class="banner" hidden></div>
 
       <form id="build-form" class="composer">
-        <div class="row">
-          <label class="field lang-field">
+        <div class="row settings">
+          <label class="field">
             <span>Language</span>
             <select id="language" name="language"></select>
           </label>
-          <label class="field grow">
-            <span>What should I build?</span>
-            <textarea
-              id="prompt"
-              name="prompt"
-              rows="3"
-              placeholder="e.g. A CLI to-do app that saves tasks to a JSON file, with add / list / done commands"
-              autofocus
-            ></textarea>
+          <label class="field">
+            <span>Model</span>
+            <select id="model" name="model" title="Models you've pulled with Ollama">
+              <option value="">default</option>
+            </select>
           </label>
         </div>
+        <label class="field">
+          <span>What should I build?</span>
+          <textarea
+            id="prompt"
+            name="prompt"
+            rows="3"
+            placeholder="e.g. A CLI to-do app that saves tasks to a JSON file, with add / list / done commands"
+            autofocus
+          ></textarea>
+        </label>
         <div class="actions">
           <button type="submit" id="build-btn" class="primary">Build it</button>
           <button type="button" id="stop-btn" class="ghost" hidden>Stop</button>

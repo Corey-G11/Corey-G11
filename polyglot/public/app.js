@@ -35,6 +35,7 @@ const EXAMPLES = [
 
 const form = document.getElementById("build-form");
 const langSelect = document.getElementById("language");
+const modelSelect = document.getElementById("model");
 const promptEl = document.getElementById("prompt");
 const buildBtn = document.getElementById("build-btn");
 const stopBtn = document.getElementById("stop-btn");
@@ -58,22 +59,43 @@ async function checkStatus() {
     return; // server unreachable; the build path will surface it
   }
 
+  populateModels(status);
+
   if (!status.ollama) {
     showBanner(
       "warn",
       `Ollama isn't running. Install it from <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, then run <code>ollama serve</code> and <code>ollama pull ${escapeHtml(status.model)}</code>.`
     );
-  } else if (!status.hasModel) {
+  } else if (!status.hasModel && !(status.models && status.models.length)) {
     showBanner(
       "warn",
-      `Ollama is running, but the model <code>${escapeHtml(status.model)}</code> isn't installed. Run <code>ollama pull ${escapeHtml(status.model)}</code> to get it.`
+      `Ollama is running, but no models are installed. Run <code>ollama pull ${escapeHtml(status.model)}</code> to get started.`
     );
   } else {
     bannerEl.hidden = true;
   }
-  if (status.model && footNote) {
-    footNote.textContent = `Runs locally with Ollama — free, no API key. Model: ${status.model}`;
+  if (footNote) {
+    footNote.textContent = "Runs locally with Ollama — free, no API key.";
   }
+}
+
+// Fill the model dropdown with whatever the user has pulled. An empty value
+// means "let the server use its default model".
+function populateModels(status) {
+  const models = status.models || [];
+  if (!models.length) return; // keep the single "default" option
+  modelSelect.innerHTML = "";
+  for (const name of models) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    modelSelect.appendChild(opt);
+  }
+  // Prefer the server's configured default if it's installed.
+  const preferred = models.find(
+    (n) => n === status.model || n.split(":")[0] === (status.model || "").split(":")[0]
+  );
+  modelSelect.value = preferred || models[0];
 }
 
 function showBanner(kind, html) {
@@ -134,7 +156,7 @@ form.addEventListener("submit", async (e) => {
     const res = await fetch("/api/build", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, language: langSelect.value }),
+      body: JSON.stringify({ prompt, language: langSelect.value, model: modelSelect.value }),
       signal: controller.signal,
     });
 

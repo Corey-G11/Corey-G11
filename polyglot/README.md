@@ -17,6 +17,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   "a REST API for a bookshelf", "Conway's Game of Life in the terminal".
 - **Streaming output** — code appears as it's written.
 - **Real files** — each file gets its own block with **Copy** and **Download**.
+- **Switch models on the fly** — the **Model** dropdown lists everything you've
+  pulled, so you can trade speed for quality per request.
 
 ## Requirements
 
@@ -39,6 +41,17 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 
    `qwen2.5-coder` is a strong, compact code model. Any Ollama model works —
    e.g. `llama3.1`, `deepseek-coder-v2`, `codellama`.
+
+   **Pick by your GPU's VRAM** (roughly):
+
+   | VRAM        | Good picks                                             |
+   | ----------- | ------------------------------------------------------ |
+   | 8 GB        | `qwen2.5-coder:7b`, `llama3.1:8b`                       |
+   | 12–16 GB    | `qwen2.5-coder:14b` (e.g. RTX 4060 Ti 16 GB)           |
+   | 24 GB+      | `qwen2.5-coder:32b`                                     |
+
+   Pull as many as you like — you can switch between them in the app's **Model**
+   dropdown without restarting.
 
 3. **Start Polyglot:**
 

@@ -70,10 +70,10 @@ main {
   padding: 16px;
 }
 .row { display: flex; gap: 12px; }
+.settings { margin-bottom: 12px; }
+.settings .field { flex: 1; min-width: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.field.grow { flex: 1; }
-.lang-field { min-width: 170px; }
 
 select, textarea {
   font: inherit;
@@ -188,5 +188,4 @@ button.ghost:hover { border-color: var(--accent); }
 
 @media (max-width: 640px) {
   .row { flex-direction: column; }
-  .lang-field { min-width: 0; }
 }
