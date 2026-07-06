@@ -16,12 +16,14 @@
         <span class="logo">🛠️</span>
         <div>
           <h1>Polyglot</h1>
-          <p class="tagline">Knows every language. Tell it what you want — it builds it.</p>
+          <p class="tagline">Knows every language. Tell it what you want — it builds it. Runs locally, free.</p>
         </div>
       </div>
     </header>
 
     <main>
+      <div id="banner" class="banner" hidden></div>
+
       <form id="build-form" class="composer">
         <div class="row">
           <label class="field lang-field">
@@ -57,7 +59,7 @@
     </main>
 
     <footer class="foot">
-      <span>Built with the Claude API.</span>
+      <span id="foot-note">Runs locally with Ollama — free, no API key.</span>
     </footer>
 
     <script src="/app.js"></script>

@@ -1,20 +1,24 @@
-import express from "express";
+import http from "node:http";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import Anthropic from "@anthropic-ai/sdk";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = path.join(__dirname, "public");
 
 const PORT = process.env.PORT || 3000;
-const MODEL = process.env.POLYGLOT_MODEL || "claude-opus-4-8";
+// Ollama runs the model locally — free, no API key. Override the model with
+// POLYGLOT_MODEL (must be pulled first: `ollama pull <model>`).
+const OLLAMA_URL = (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/$/, "");
+const MODEL = process.env.POLYGLOT_MODEL || "qwen2.5-coder";
 
-const app = express();
-app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "public")));
-
-// A single client, reused across requests. It resolves credentials from the
-// environment (ANTHROPIC_API_KEY, or an `ant auth login` profile).
-const client = new Anthropic();
+const CONTENT_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+};
 
 function systemPrompt(language) {
   const target =
@@ -38,106 +42,228 @@ function systemPrompt(language) {
   ].join("\n");
 }
 
-app.post("/api/build", async (req, res) => {
-  const prompt = (req.body?.prompt || "").toString().trim();
-  const language = (req.body?.language || "auto").toString().trim();
+const server = http.createServer(async (req, res) => {
+  try {
+    if (req.method === "GET" && req.url === "/api/status") {
+      await handleStatus(res);
+    } else if (req.method === "POST" && req.url === "/api/build") {
+      await handleBuild(req, res);
+    } else if (req.method === "GET") {
+      serveStatic(req, res);
+    } else {
+      res.writeHead(405).end("Method Not Allowed");
+    }
+  } catch (err) {
+    console.error("[server]", err);
+    if (!res.headersSent) res.writeHead(500).end("Internal Server Error");
+    else res.end();
+  }
+});
+
+// --- Static files ---------------------------------------------------------
+
+function serveStatic(req, res) {
+  const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+  const rel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
+  const filePath = path.join(PUBLIC_DIR, rel);
+
+  // Prevent path traversal outside public/.
+  if (!filePath.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403).end("Forbidden");
+    return;
+  }
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404, { "Content-Type": "text/plain" }).end("Not found");
+      return;
+    }
+    const type = CONTENT_TYPES[path.extname(filePath)] || "application/octet-stream";
+    res.writeHead(200, { "Content-Type": type }).end(data);
+  });
+}
+
+// --- Status: is Ollama running, and is the model pulled? ------------------
+
+async function handleStatus(res) {
+  const result = { ollama: false, model: MODEL, hasModel: false, models: [] };
+  try {
+    const r = await fetch(`${OLLAMA_URL}/api/tags`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (r.ok) {
+      const body = await r.json();
+      const names = (body.models || []).map((m) => m.name);
+      result.ollama = true;
+      result.models = names;
+      const base = MODEL.split(":")[0];
+      result.hasModel = names.some(
+        (n) => n === MODEL || n === `${MODEL}:latest` || n.split(":")[0] === base
+      );
+    }
+  } catch {
+    /* Ollama not reachable */
+  }
+  res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(result));
+}
+
+// --- Build: stream a model response to the browser over SSE ---------------
+
+function readJsonBody(req, limit = 1_000_000) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > limit) {
+        reject(new Error("Request body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"));
+      } catch {
+        reject(new Error("Invalid JSON body"));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+async function handleBuild(req, res) {
+  let payload;
+  try {
+    payload = await readJsonBody(req);
+  } catch (e) {
+    res.writeHead(400, { "Content-Type": "application/json" }).end(
+      JSON.stringify({ error: e.message })
+    );
+    return;
+  }
+
+  const prompt = (payload.prompt || "").toString().trim();
+  const language = (payload.language || "auto").toString().trim();
 
   if (!prompt) {
-    res.status(400).json({ error: "Describe what you want built." });
+    res.writeHead(400, { "Content-Type": "application/json" }).end(
+      JSON.stringify({ error: "Describe what you want built." })
+    );
     return;
   }
   if (prompt.length > 20000) {
-    res.status(400).json({ error: "That request is too long — trim it down a bit." });
+    res.writeHead(400, { "Content-Type": "application/json" }).end(
+      JSON.stringify({ error: "That request is too long — trim it down a bit." })
+    );
     return;
   }
 
-  // Server-Sent Events: stream tokens to the browser as they arrive.
-  res.set({
+  res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
   });
-  res.flushHeaders?.();
 
   const send = (event, data) => {
     res.write(`event: ${event}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  let stream;
+  const controller = new AbortController();
+  req.on("close", () => controller.abort());
+
   try {
-    stream = client.messages.stream({
-      model: MODEL,
-      max_tokens: 20000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high" },
-      system: systemPrompt(language),
-      messages: [{ role: "user", content: prompt }],
+    const upstream = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL,
+        stream: true,
+        options: { temperature: 0.3 },
+        messages: [
+          { role: "system", content: systemPrompt(language) },
+          { role: "user", content: prompt },
+        ],
+      }),
+      signal: controller.signal,
     });
 
-    // Abort the upstream request if the browser goes away.
-    req.on("close", () => stream?.abort?.());
+    if (!upstream.ok) {
+      const text = await upstream.text().catch(() => "");
+      send("error", { message: describeOllamaError(upstream.status, text) });
+      res.end();
+      return;
+    }
 
-    for await (const chunk of stream) {
-      if (
-        chunk.type === "content_block_delta" &&
-        chunk.delta.type === "text_delta"
-      ) {
-        send("token", { text: chunk.delta.text });
+    // Ollama streams newline-delimited JSON objects.
+    const decoder = new TextDecoder();
+    let buf = "";
+    for await (const chunk of upstream.body) {
+      buf += decoder.decode(chunk, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        let obj;
+        try {
+          obj = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (obj.error) {
+          send("error", { message: describeOllamaError(200, obj.error) });
+          res.end();
+          return;
+        }
+        const piece = obj.message?.content;
+        if (piece) send("token", { text: piece });
+        if (obj.done) {
+          send("done", { model: MODEL, eval_count: obj.eval_count ?? null });
+          res.end();
+          return;
+        }
       }
     }
-
-    const finalMessage = await stream.finalMessage();
-    if (finalMessage.stop_reason === "refusal") {
-      send("error", {
-        message:
-          "The model declined this request. Try rephrasing, or ask for something else.",
-      });
-    } else {
-      send("done", {
-        model: finalMessage.model,
-        stop_reason: finalMessage.stop_reason,
-        output_tokens: finalMessage.usage?.output_tokens ?? null,
-      });
-    }
+    send("done", { model: MODEL });
   } catch (err) {
-    const message = describeError(err);
-    // If headers/stream already started, deliver the error over SSE.
-    send("error", { message });
-    console.error("[/api/build]", err?.status || "", message);
+    if (err?.name === "AbortError") {
+      res.end();
+      return;
+    }
+    send("error", { message: describeFetchError(err) });
+    console.error("[/api/build]", err?.message || err);
   } finally {
     res.end();
   }
-});
+}
 
-function describeError(err) {
-  // Missing credentials throw the base error at call time (not a 401 response),
-  // so match on the message before the typed-error checks below.
-  if (/apiKey|authToken|authentication method/i.test(err?.message || "")) {
-    return "No API key found. Set ANTHROPIC_API_KEY in the server environment (see the README).";
-  }
-  if (err instanceof Anthropic.AuthenticationError) {
-    return "Your API key was rejected. Check ANTHROPIC_API_KEY in the server environment.";
-  }
-  if (err instanceof Anthropic.RateLimitError) {
-    return "Rate limited by the API. Wait a moment and try again.";
-  }
-  if (err instanceof Anthropic.APIConnectionError) {
-    return "Could not reach the Claude API. Check the server's network connection.";
-  }
-  if (err instanceof Anthropic.APIError) {
-    return `API error${err.status ? ` (${err.status})` : ""}: ${err.message}`;
+function describeFetchError(err) {
+  const msg = err?.cause?.code || err?.message || "";
+  if (/ECONNREFUSED|fetch failed|ENOTFOUND|ETIMEDOUT/i.test(msg)) {
+    return `Can't reach Ollama at ${OLLAMA_URL}. Install it from https://ollama.com, then run "ollama serve" and "ollama pull ${MODEL}".`;
   }
   return err?.message || "Something went wrong while building.";
 }
 
-app.listen(PORT, () => {
-  console.log(`\n  Polyglot is running → http://localhost:${PORT}`);
-  console.log(`  Model: ${MODEL}`);
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log(
-      "\n  ⚠  ANTHROPIC_API_KEY is not set. Set it before building, e.g.:\n" +
-        "     export ANTHROPIC_API_KEY=sk-ant-...\n"
-    );
+function describeOllamaError(status, text) {
+  if (/not found|no such model|try pulling/i.test(text)) {
+    return `The model "${MODEL}" isn't installed. Run: ollama pull ${MODEL}`;
   }
+  if (status === 404) {
+    return `The model "${MODEL}" isn't installed. Run: ollama pull ${MODEL}`;
+  }
+  return `Ollama error${status ? ` (${status})` : ""}: ${text || "unknown"}`;
+}
+
+server.listen(PORT, () => {
+  console.log(`\n  Polyglot is running → http://localhost:${PORT}`);
+  console.log(`  Model:  ${MODEL} (local, via Ollama)`);
+  console.log(`  Ollama: ${OLLAMA_URL}`);
+  console.log(
+    `\n  Free & local — no API key. If you haven't yet:\n` +
+      `     1. Install Ollama:  https://ollama.com\n` +
+      `     2. Pull the model:  ollama pull ${MODEL}\n`
+  );
 });

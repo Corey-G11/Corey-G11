@@ -43,6 +43,44 @@ const examplesEl = document.getElementById("examples");
 const outputEl = document.getElementById("output");
 const streamEl = document.getElementById("stream");
 const emptyEl = document.getElementById("empty");
+const bannerEl = document.getElementById("banner");
+const footNote = document.getElementById("foot-note");
+
+// Check whether Ollama is running and the model is pulled, and guide the user
+// if not. Purely informational — building still works once things are ready.
+checkStatus();
+async function checkStatus() {
+  let status;
+  try {
+    const res = await fetch("/api/status");
+    status = await res.json();
+  } catch {
+    return; // server unreachable; the build path will surface it
+  }
+
+  if (!status.ollama) {
+    showBanner(
+      "warn",
+      `Ollama isn't running. Install it from <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, then run <code>ollama serve</code> and <code>ollama pull ${escapeHtml(status.model)}</code>.`
+    );
+  } else if (!status.hasModel) {
+    showBanner(
+      "warn",
+      `Ollama is running, but the model <code>${escapeHtml(status.model)}</code> isn't installed. Run <code>ollama pull ${escapeHtml(status.model)}</code> to get it.`
+    );
+  } else {
+    bannerEl.hidden = true;
+  }
+  if (status.model && footNote) {
+    footNote.textContent = `Runs locally with Ollama — free, no API key. Model: ${status.model}`;
+  }
+}
+
+function showBanner(kind, html) {
+  bannerEl.className = `banner ${kind}`;
+  bannerEl.innerHTML = html;
+  bannerEl.hidden = false;
+}
 
 // Populate the language dropdown ("Auto" maps to the value the server expects).
 for (const name of LANGUAGES) {

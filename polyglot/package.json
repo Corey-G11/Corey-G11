@@ -1,7 +1,7 @@
 {
   "name": "polyglot",
   "version": "1.0.0",
-  "description": "Describe what you want, pick a language (or let it choose), and Polyglot builds it — powered by Claude.",
+  "description": "Describe what you want, pick a language (or let it choose), and Polyglot builds it — free, running a local model via Ollama.",
   "type": "module",
   "scripts": {
     "start": "node server.js",
@@ -9,9 +9,5 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.0",
-    "express": "^4.21.2"
   }
 }
