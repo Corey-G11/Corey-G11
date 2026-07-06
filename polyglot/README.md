@@ -20,6 +20,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   plus a **Download all files (.zip)** button for multi-file projects.
 - **Switch models on the fly** — the **Model** dropdown lists everything you've
   pulled, so you can trade speed for quality per request.
+- **Recent builds** — your past requests are saved in the browser; click one to
+  reload its result and prompt, then tweak and re-run. Nothing is sent anywhere.
 
 ## Requirements
 

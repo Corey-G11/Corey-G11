@@ -136,8 +136,8 @@
   );
 
   const HASH_COMMENT = new Set(
-    "python py ruby rb bash sh shell zsh perl r yaml yml toml makefile make " +
-      "elixir ex powershell ps1 ini conf dockerfile".split(/\s+/)
+    ("python py ruby rb bash sh shell zsh perl r yaml yml toml makefile make " +
+      "elixir ex powershell ps1 ini conf dockerfile").split(/\s+/)
   );
   const DASH_COMMENT = new Set("sql lua haskell hs elm ada".split(/\s+/));
   const MARKUP = new Set("html xml svg xhtml vue markdown md".split(/\s+/));

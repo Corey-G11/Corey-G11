@@ -48,8 +48,19 @@ const bannerEl = document.getElementById("banner");
 const footNote = document.getElementById("foot-note");
 const outputBar = document.getElementById("output-bar");
 const zipBtn = document.getElementById("zip-btn");
+const historyEl = document.getElementById("history");
+const historyList = document.getElementById("history-list");
+const historyClear = document.getElementById("history-clear");
 
 zipBtn.addEventListener("click", downloadZip);
+historyClear.addEventListener("click", () => {
+  if (confirm("Clear all saved builds?")) {
+    saveHistory([]);
+    renderHistory();
+  }
+});
+// Initial history render happens at the end of the file, after HISTORY_KEY and
+// the history functions are declared (const declarations are not hoisted).
 
 // Check whether Ollama is running and the model is pulled, and guide the user
 // if not. Purely informational — building still works once things are ready.
@@ -142,16 +153,23 @@ form.addEventListener("submit", async (e) => {
 
   startBuilding();
   let buffer = "";
-  let scheduled = false;
+  let rafId = 0;
+  let hadError = false;
+  let usedModel = modelSelect.value;
 
   const render = () => {
-    scheduled = false;
+    rafId = 0;
     renderMarkdown(streamEl, buffer, true);
   };
   const scheduleRender = () => {
-    if (!scheduled) {
-      scheduled = true;
-      requestAnimationFrame(render);
+    if (!rafId) rafId = requestAnimationFrame(render);
+  };
+  // A queued streaming frame must not fire after the final highlighted render,
+  // or it would overwrite highlighting with plain text.
+  const cancelPendingRender = () => {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
     }
   };
 
@@ -174,19 +192,26 @@ form.addEventListener("submit", async (e) => {
         buffer += data.text;
         scheduleRender();
       } else if (event === "done") {
+        if (data.model) usedModel = data.model;
         const bits = [];
         if (data.model) bits.push(data.model);
         if (data.eval_count) bits.push(`${data.eval_count} tokens`);
         setStatus(bits.length ? `Done — ${bits.join(" · ")}` : "Done");
       } else if (event === "error") {
+        hadError = true;
         setStatus(data.message || "Something went wrong.", true);
       }
     });
+    cancelPendingRender();
     renderMarkdown(streamEl, buffer, false); // final render: highlight, no cursor
     updateZipButton();
+    if (!hadError && buffer.trim()) {
+      addHistory({ prompt, language: langSelect.value, model: usedModel, response: buffer });
+    }
   } catch (err) {
     if (err.name === "AbortError") {
       setStatus("Stopped.");
+      cancelPendingRender();
       renderMarkdown(streamEl, buffer, false);
       updateZipButton();
     } else {
@@ -414,3 +439,110 @@ function downloadZip() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/* ---------- Recent builds (localStorage) ---------- */
+
+const HISTORY_KEY = "polyglot.history";
+const HISTORY_MAX = 30;
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(list) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch {
+    // Quota exceeded — drop the oldest entries and retry once.
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 10)));
+    } catch {
+      /* give up silently */
+    }
+  }
+}
+
+function addHistory(entry) {
+  const list = loadHistory();
+  list.unshift({ id: Date.now() + "-" + Math.random().toString(36).slice(2, 7), ts: Date.now(), ...entry });
+  saveHistory(list.slice(0, HISTORY_MAX));
+  renderHistory();
+}
+
+function deleteHistory(id) {
+  saveHistory(loadHistory().filter((e) => e.id !== id));
+  renderHistory();
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function renderHistory() {
+  const list = loadHistory();
+  historyList.innerHTML = "";
+  historyEl.hidden = list.length === 0;
+  for (const entry of list) {
+    const li = document.createElement("li");
+    li.className = "history-item";
+
+    const main = document.createElement("div");
+    main.className = "history-main";
+    main.title = "Load this build";
+    const langLabel = entry.language && entry.language !== "auto" ? entry.language : "Auto";
+    main.innerHTML =
+      `<div class="history-prompt"></div>` +
+      `<div class="history-meta">${escapeHtml(langLabel)} · ${escapeHtml(entry.model || "")} · ${timeAgo(entry.ts)}</div>`;
+    main.querySelector(".history-prompt").textContent = entry.prompt;
+    main.addEventListener("click", () => loadHistoryEntry(entry));
+
+    const del = document.createElement("button");
+    del.className = "history-del";
+    del.type = "button";
+    del.textContent = "×";
+    del.title = "Remove";
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteHistory(entry.id);
+    });
+
+    li.appendChild(main);
+    li.appendChild(del);
+    historyList.appendChild(li);
+  }
+}
+
+// Reload a saved build: repopulate the form and re-display its output,
+// without calling the model again. Edit + Build to re-run.
+function loadHistoryEntry(entry) {
+  if (controller) return; // don't clobber an in-flight build
+  promptEl.value = entry.prompt || "";
+  if (entry.language) selectIfPresent(langSelect, entry.language);
+  if (entry.model) selectIfPresent(modelSelect, entry.model);
+
+  emptyEl.hidden = true;
+  outputEl.hidden = false;
+  renderMarkdown(streamEl, entry.response || "", false);
+  updateZipButton();
+  setStatus(`Loaded from history · ${timeAgo(entry.ts)}`);
+  outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function selectIfPresent(select, value) {
+  if ([...select.options].some((o) => o.value === value)) select.value = value;
+}
+
+// Render any saved builds now that all history declarations exist.
+renderHistory();
