@@ -36,8 +36,10 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 2. **Pull a coding model** (a few GB, one-time download):
 
    ```bash
-   ollama pull qwen2.5-coder
+   ollama pull qwen2.5-coder:7b
    ```
+
+   This is the default and fits an 8 GB GPU comfortably.
 
    `qwen2.5-coder` is a strong, compact code model. Any Ollama model works —
    e.g. `llama3.1`, `deepseek-coder-v2`, `codellama`.
@@ -46,8 +48,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 
    | VRAM        | Good picks                                             |
    | ----------- | ------------------------------------------------------ |
-   | 8 GB        | `qwen2.5-coder:7b`, `llama3.1:8b`                       |
-   | 12–16 GB    | `qwen2.5-coder:14b` (e.g. RTX 4060 Ti 16 GB)           |
+   | 8 GB        | `qwen2.5-coder:7b` (default), `llama3.1:8b`             |
+   | 12–16 GB    | `qwen2.5-coder:14b`                                     |
    | 24 GB+      | `qwen2.5-coder:32b`                                     |
 
    Pull as many as you like — you can switch between them in the app's **Model**

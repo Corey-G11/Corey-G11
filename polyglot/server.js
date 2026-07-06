@@ -10,7 +10,9 @@ const PORT = process.env.PORT || 3000;
 // Ollama runs the model locally — free, no API key. Override the model with
 // POLYGLOT_MODEL (must be pulled first: `ollama pull <model>`).
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/$/, "");
-const MODEL = process.env.POLYGLOT_MODEL || "qwen2.5-coder";
+// Default targets an 8 GB GPU (e.g. RTX 4060 Ti 8 GB): qwen2.5-coder:7b is a
+// strong code model at ~4.7 GB. Override with POLYGLOT_MODEL.
+const MODEL = process.env.POLYGLOT_MODEL || "qwen2.5-coder:7b";
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
