@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Polyglot — describe it, and it builds it</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🛠️</span>
+        <div>
+          <h1>Polyglot</h1>
+          <p class="tagline">Knows every language. Tell it what you want — it builds it.</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <form id="build-form" class="composer">
+        <div class="row">
+          <label class="field lang-field">
+            <span>Language</span>
+            <select id="language" name="language"></select>
+          </label>
+          <label class="field grow">
+            <span>What should I build?</span>
+            <textarea
+              id="prompt"
+              name="prompt"
+              rows="3"
+              placeholder="e.g. A CLI to-do app that saves tasks to a JSON file, with add / list / done commands"
+              autofocus
+            ></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" id="build-btn" class="primary">Build it</button>
+          <button type="button" id="stop-btn" class="ghost" hidden>Stop</button>
+          <span id="status" class="status"></span>
+        </div>
+        <div class="examples" id="examples" aria-label="Example requests"></div>
+      </form>
+
+      <section id="output" class="output" hidden>
+        <div id="stream" class="stream"></div>
+      </section>
+
+      <section id="empty" class="empty">
+        <p>Describe a program in plain English. Pick a language or leave it on <strong>Auto</strong> and let Polyglot choose.</p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>Built with the Claude API.</span>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
