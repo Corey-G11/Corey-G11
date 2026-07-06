@@ -46,6 +46,10 @@ const streamEl = document.getElementById("stream");
 const emptyEl = document.getElementById("empty");
 const bannerEl = document.getElementById("banner");
 const footNote = document.getElementById("foot-note");
+const outputBar = document.getElementById("output-bar");
+const zipBtn = document.getElementById("zip-btn");
+
+zipBtn.addEventListener("click", downloadZip);
 
 // Check whether Ollama is running and the model is pulled, and guide the user
 // if not. Purely informational — building still works once things are ready.
@@ -170,20 +174,21 @@ form.addEventListener("submit", async (e) => {
         buffer += data.text;
         scheduleRender();
       } else if (event === "done") {
-        buffer = buffer; // final flush below
         const bits = [];
         if (data.model) bits.push(data.model);
-        if (data.output_tokens) bits.push(`${data.output_tokens} tokens`);
+        if (data.eval_count) bits.push(`${data.eval_count} tokens`);
         setStatus(bits.length ? `Done — ${bits.join(" · ")}` : "Done");
       } else if (event === "error") {
         setStatus(data.message || "Something went wrong.", true);
       }
     });
-    renderMarkdown(streamEl, buffer, false); // final render, no cursor
+    renderMarkdown(streamEl, buffer, false); // final render: highlight, no cursor
+    updateZipButton();
   } catch (err) {
     if (err.name === "AbortError") {
       setStatus("Stopped.");
       renderMarkdown(streamEl, buffer, false);
+      updateZipButton();
     } else {
       setStatus(err.message || "Something went wrong.", true);
     }
@@ -197,6 +202,7 @@ stopBtn.addEventListener("click", () => controller?.abort());
 function startBuilding() {
   emptyEl.hidden = true;
   outputEl.hidden = false;
+  outputBar.hidden = true;
   streamEl.innerHTML = "";
   buildBtn.disabled = true;
   buildBtn.textContent = "Building…";
@@ -284,13 +290,14 @@ function renderProse(text) {
   return html;
 }
 
-function makeCodeBlock(info, code) {
+function makeCodeBlock(info, code, highlight) {
   const tokens = info.trim().split(/\s+/).filter(Boolean);
   const lang = tokens[0] || "text";
   const filename = tokens.slice(1).join(" ") || "";
 
   const wrap = document.createElement("div");
   wrap.className = "codeblock";
+  if (filename) wrap.dataset.filename = filename;
 
   const head = document.createElement("div");
   head.className = "cb-head";
@@ -336,7 +343,13 @@ function makeCodeBlock(info, code) {
 
   const pre = document.createElement("pre");
   const codeEl = document.createElement("code");
-  codeEl.textContent = code;
+  // Highlight only on the final render (streaming frames stay plain text for
+  // speed and because the trailing block is still incomplete).
+  if (highlight && window.PolyglotLib) {
+    codeEl.innerHTML = window.PolyglotLib.highlightCode(code, lang);
+  } else {
+    codeEl.textContent = code;
+  }
   pre.appendChild(codeEl);
   wrap.appendChild(pre);
   return wrap;
@@ -358,7 +371,9 @@ function renderMarkdown(container, text, streaming) {
       const code = nl === -1 ? "" : part.slice(nl + 1);
       // While streaming, the closing fence for the final block hasn't arrived,
       // so trim a trailing newline that would otherwise wobble.
-      container.appendChild(makeCodeBlock(info, isLast && streaming ? code : code.replace(/\n$/, "")));
+      container.appendChild(
+        makeCodeBlock(info, isLast && streaming ? code : code.replace(/\n$/, ""), !streaming)
+      );
     } else if (part.trim() !== "") {
       const div = document.createElement("div");
       div.className = "prose";
@@ -367,4 +382,35 @@ function renderMarkdown(container, text, streaming) {
       container.appendChild(div);
     }
   });
+}
+
+/* ---------- Download all files as a .zip ---------- */
+
+// Collect every rendered code block that has a filename.
+function collectFiles() {
+  const files = [];
+  for (const block of streamEl.querySelectorAll(".codeblock[data-filename]")) {
+    const name = block.dataset.filename;
+    const codeEl = block.querySelector("pre code");
+    if (name && codeEl) files.push({ name, content: codeEl.textContent });
+  }
+  return files;
+}
+
+// Show the "Download all" button once there are at least two named files.
+function updateZipButton() {
+  outputBar.hidden = collectFiles().length < 2;
+}
+
+function downloadZip() {
+  const files = collectFiles();
+  if (!files.length || !window.PolyglotLib) return;
+  const bytes = window.PolyglotLib.buildZip(files);
+  const blob = new Blob([bytes], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "polyglot-project.zip";
+  a.click();
+  URL.revokeObjectURL(url);
 }

@@ -15,8 +15,9 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   and more. Or **Auto**, where Polyglot picks the best language for the task.
 - **You describe, it builds** — "a CLI to-do app that saves tasks to JSON",
   "a REST API for a bookshelf", "Conway's Game of Life in the terminal".
-- **Streaming output** — code appears as it's written.
-- **Real files** — each file gets its own block with **Copy** and **Download**.
+- **Streaming output** — code appears as it's written, with syntax highlighting.
+- **Real files** — each file gets its own block with **Copy** and **Download**,
+  plus a **Download all files (.zip)** button for multi-file projects.
 - **Switch models on the fly** — the **Model** dropdown lists everything you've
   pulled, so you can trade speed for quality per request.
 

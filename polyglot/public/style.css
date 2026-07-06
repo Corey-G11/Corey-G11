@@ -126,7 +126,16 @@ button.ghost:hover { border-color: var(--accent); }
 }
 
 .output { margin-top: 20px; }
+.output-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+button.small { padding: 6px 12px; font-size: 13px; font-weight: 500; }
 .stream { display: flex; flex-direction: column; gap: 14px; }
+
+/* Syntax highlighting tokens */
+.tok-comment { color: #6b7280; font-style: italic; }
+.tok-string { color: #a5d6a7; }
+.tok-number { color: #f6c177; }
+.tok-keyword { color: #82aaff; }
+.tok-literal { color: #c792ea; }
 
 .prose { line-height: 1.6; }
 .prose p { margin: 0 0 10px; }
