@@ -176,6 +176,14 @@ form.addEventListener("submit", (e) => {
   runBuild({ prompt, language: langSelect.value, model: modelSelect.value });
 });
 
+// Ctrl/Cmd+Enter builds from the prompt field.
+promptEl.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    form.requestSubmit();
+  }
+});
+
 async function runBuild({ prompt, language, model }) {
   if (controller) return; // a build is already running
   lastBuild = { prompt, language, model };
@@ -533,18 +541,28 @@ function renderHistory() {
     const main = document.createElement("div");
     main.className = "history-main";
     main.title = "Load this build";
+    main.tabIndex = 0;
+    main.setAttribute("role", "button");
     const langLabel = entry.language && entry.language !== "auto" ? entry.language : "Auto";
+    main.setAttribute("aria-label", `Load build: ${entry.prompt}`);
     main.innerHTML =
       `<div class="history-prompt"></div>` +
       `<div class="history-meta">${escapeHtml(langLabel)} · ${escapeHtml(entry.model || "")} · ${timeAgo(entry.ts)}</div>`;
     main.querySelector(".history-prompt").textContent = entry.prompt;
     main.addEventListener("click", () => loadHistoryEntry(entry));
+    main.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        loadHistoryEntry(entry);
+      }
+    });
 
     const del = document.createElement("button");
     del.className = "history-del";
     del.type = "button";
     del.textContent = "×";
     del.title = "Remove";
+    del.setAttribute("aria-label", "Remove this build from history");
     del.addEventListener("click", (e) => {
       e.stopPropagation();
       deleteHistory(entry.id);
@@ -572,7 +590,8 @@ function loadHistoryEntry(entry) {
   renderMarkdown(streamEl, entry.response || "", false);
   updateOutputBar();
   setStatus(`Loaded from history · ${timeAgo(entry.ts)}`);
-  outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  outputEl.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 }
 
 function selectIfPresent(select, value) {

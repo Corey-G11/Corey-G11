@@ -60,9 +60,9 @@
           ></textarea>
         </label>
         <div class="actions">
-          <button type="submit" id="build-btn" class="primary">Build it</button>
+          <button type="submit" id="build-btn" class="primary" title="Ctrl+Enter to build">Build it</button>
           <button type="button" id="stop-btn" class="ghost" hidden>Stop</button>
-          <span id="status" class="status"></span>
+          <span id="status" class="status" role="status" aria-live="polite"></span>
         </div>
         <div class="examples" id="examples" aria-label="Example requests"></div>
       </form>
