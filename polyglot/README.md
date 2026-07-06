@@ -24,6 +24,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   reload its result and prompt, then tweak and re-run. Nothing is sent anywhere.
 - **Regenerate** — re-run the exact last request in one click. Handy since local
   models vary run to run, so you can roll again for a different take.
+- **Light or dark** — a theme toggle in the header, remembered per browser and
+  defaulting to your system preference.
 
 ## Requirements
 

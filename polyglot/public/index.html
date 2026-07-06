@@ -4,11 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Polyglot — describe it, and it builds it</title>
-    <link rel="stylesheet" href="/style.css" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>"
     />
+    <!-- Apply the saved/system theme before first paint to avoid a flash. -->
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("polyglot.theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <header class="topbar">
@@ -19,6 +30,7 @@
           <p class="tagline">Knows every language. Tell it what you want — it builds it. Runs locally, free.</p>
         </div>
       </div>
+      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle light or dark theme" title="Toggle theme">🌙</button>
     </header>
 
     <main>

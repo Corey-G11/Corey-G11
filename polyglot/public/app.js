@@ -53,6 +53,25 @@ const historyEl = document.getElementById("history");
 const historyList = document.getElementById("history-list");
 const historyClear = document.getElementById("history-clear");
 
+// Theme toggle. The head script already applied the saved/system theme before
+// paint; here we sync the button icon and handle clicks.
+const themeToggle = document.getElementById("theme-toggle");
+function syncThemeIcon() {
+  const light = document.documentElement.getAttribute("data-theme") === "light";
+  themeToggle.textContent = light ? "☀️" : "🌙";
+}
+themeToggle.addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("polyglot.theme", next);
+  } catch {
+    /* ignore storage errors */
+  }
+  syncThemeIcon();
+});
+syncThemeIcon();
+
 zipBtn.addEventListener("click", downloadZip);
 regenBtn.addEventListener("click", () => {
   if (lastBuild && !controller) runBuild(lastBuild);
