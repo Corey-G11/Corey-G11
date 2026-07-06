@@ -161,7 +161,7 @@ button.ghost:hover { border-color: var(--accent); }
 .history-del:hover { border-color: var(--danger); color: var(--danger); }
 
 .output { margin-top: 20px; }
-.output-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.output-bar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
 button.small { padding: 6px 12px; font-size: 13px; font-weight: 500; }
 .stream { display: flex; flex-direction: column; gap: 14px; }
 

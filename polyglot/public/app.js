@@ -48,11 +48,15 @@ const bannerEl = document.getElementById("banner");
 const footNote = document.getElementById("foot-note");
 const outputBar = document.getElementById("output-bar");
 const zipBtn = document.getElementById("zip-btn");
+const regenBtn = document.getElementById("regen-btn");
 const historyEl = document.getElementById("history");
 const historyList = document.getElementById("history-list");
 const historyClear = document.getElementById("history-clear");
 
 zipBtn.addEventListener("click", downloadZip);
+regenBtn.addEventListener("click", () => {
+  if (lastBuild && !controller) runBuild(lastBuild);
+});
 historyClear.addEventListener("click", () => {
   if (confirm("Clear all saved builds?")) {
     saveHistory([]);
@@ -141,21 +145,27 @@ for (const ex of EXAMPLES) {
 }
 
 let controller = null;
+let lastBuild = null; // { prompt, language, model } of the most recent build
 
-form.addEventListener("submit", async (e) => {
+form.addEventListener("submit", (e) => {
   e.preventDefault();
   const prompt = promptEl.value.trim();
   if (!prompt) {
     promptEl.focus();
     return;
   }
+  runBuild({ prompt, language: langSelect.value, model: modelSelect.value });
+});
+
+async function runBuild({ prompt, language, model }) {
   if (controller) return; // a build is already running
+  lastBuild = { prompt, language, model };
 
   startBuilding();
   let buffer = "";
   let rafId = 0;
   let hadError = false;
-  let usedModel = modelSelect.value;
+  let usedModel = model;
 
   const render = () => {
     rafId = 0;
@@ -178,7 +188,7 @@ form.addEventListener("submit", async (e) => {
     const res = await fetch("/api/build", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, language: langSelect.value, model: modelSelect.value }),
+      body: JSON.stringify({ prompt, language, model }),
       signal: controller.signal,
     });
 
@@ -204,23 +214,21 @@ form.addEventListener("submit", async (e) => {
     });
     cancelPendingRender();
     renderMarkdown(streamEl, buffer, false); // final render: highlight, no cursor
-    updateZipButton();
     if (!hadError && buffer.trim()) {
-      addHistory({ prompt, language: langSelect.value, model: usedModel, response: buffer });
+      addHistory({ prompt, language, model: usedModel, response: buffer });
     }
   } catch (err) {
     if (err.name === "AbortError") {
       setStatus("Stopped.");
       cancelPendingRender();
       renderMarkdown(streamEl, buffer, false);
-      updateZipButton();
     } else {
       setStatus(err.message || "Something went wrong.", true);
     }
   } finally {
     finishBuilding();
   }
-});
+}
 
 stopBtn.addEventListener("click", () => controller?.abort());
 
@@ -240,6 +248,7 @@ function finishBuilding() {
   buildBtn.disabled = false;
   buildBtn.textContent = "Build it";
   stopBtn.hidden = true;
+  updateOutputBar();
 }
 
 function setStatus(text, isError = false) {
@@ -422,9 +431,13 @@ function collectFiles() {
   return files;
 }
 
-// Show the "Download all" button once there are at least two named files.
-function updateZipButton() {
-  outputBar.hidden = collectFiles().length < 2;
+// Refresh the output toolbar: the zip button needs at least two named files;
+// Regenerate needs a previous build and no build currently running. Hide the
+// whole bar when neither button applies.
+function updateOutputBar() {
+  zipBtn.hidden = collectFiles().length < 2;
+  regenBtn.hidden = !lastBuild || !!controller;
+  outputBar.hidden = zipBtn.hidden && regenBtn.hidden;
 }
 
 function downloadZip() {
@@ -532,10 +545,13 @@ function loadHistoryEntry(entry) {
   if (entry.language) selectIfPresent(langSelect, entry.language);
   if (entry.model) selectIfPresent(modelSelect, entry.model);
 
+  // Regenerate should re-run this loaded build.
+  lastBuild = { prompt: entry.prompt, language: entry.language || "auto", model: entry.model || "" };
+
   emptyEl.hidden = true;
   outputEl.hidden = false;
   renderMarkdown(streamEl, entry.response || "", false);
-  updateZipButton();
+  updateOutputBar();
   setStatus(`Loaded from history · ${timeAgo(entry.ts)}`);
   outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
 }
