@@ -18,6 +18,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 - **Streaming output** — code appears as it's written, with syntax highlighting.
 - **Real files** — each file gets its own block with **Copy** and **Download**,
   plus a **Download all files (.zip)** button for multi-file projects.
+- **Save to folder** — write the whole project (subfolders and all) straight to
+  a directory you pick on disk. Shown only where supported (Chrome/Edge).
 - **Switch models on the fly** — the **Model** dropdown lists everything you've
   pulled, so you can trade speed for quality per request.
 - **Recent builds** — your past requests are saved in the browser; click one to

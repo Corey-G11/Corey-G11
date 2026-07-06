@@ -49,6 +49,7 @@ const footNote = document.getElementById("foot-note");
 const outputBar = document.getElementById("output-bar");
 const zipBtn = document.getElementById("zip-btn");
 const regenBtn = document.getElementById("regen-btn");
+const saveBtn = document.getElementById("save-btn");
 const historyEl = document.getElementById("history");
 const historyList = document.getElementById("history-list");
 const historyClear = document.getElementById("history-clear");
@@ -73,6 +74,7 @@ themeToggle.addEventListener("click", () => {
 syncThemeIcon();
 
 zipBtn.addEventListener("click", downloadZip);
+saveBtn.addEventListener("click", saveToFolder);
 regenBtn.addEventListener("click", () => {
   if (lastBuild && !controller) runBuild(lastBuild);
 });
@@ -458,13 +460,50 @@ function collectFiles() {
   return files;
 }
 
-// Refresh the output toolbar: the zip button needs at least two named files;
-// Regenerate needs a previous build and no build currently running. Hide the
-// whole bar when neither button applies.
+// Refresh the output toolbar. Zip needs at least two named files; Save to
+// folder needs at least one and browser support; Regenerate needs a previous
+// build and no build in progress. Hide the whole bar when nothing applies.
 function updateOutputBar() {
-  zipBtn.hidden = collectFiles().length < 2;
+  const fileCount = collectFiles().length;
+  zipBtn.hidden = fileCount < 2;
+  saveBtn.hidden = typeof window.showDirectoryPicker !== "function" || fileCount < 1;
   regenBtn.hidden = !lastBuild || !!controller;
-  outputBar.hidden = zipBtn.hidden && regenBtn.hidden;
+  outputBar.hidden = zipBtn.hidden && saveBtn.hidden && regenBtn.hidden;
+}
+
+// Save every generated file into a folder the user picks. Uses the File System
+// Access API (Chrome/Edge); the button is hidden where it's unavailable.
+async function saveToFolder() {
+  const files = collectFiles();
+  if (!files.length || typeof window.showDirectoryPicker !== "function") return;
+
+  let dir;
+  try {
+    dir = await window.showDirectoryPicker({ mode: "readwrite" });
+  } catch (err) {
+    if (err && err.name === "AbortError") return; // user cancelled
+    setStatus("Couldn't open the folder picker.", true);
+    return;
+  }
+
+  try {
+    for (const file of files) {
+      const parts = file.name.split("/").filter((p) => p && p !== "." && p !== "..");
+      const filename = parts.pop();
+      if (!filename) continue;
+      let handle = dir;
+      for (const part of parts) {
+        handle = await handle.getDirectoryHandle(part, { create: true });
+      }
+      const fh = await handle.getFileHandle(filename, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write(file.content);
+      await writable.close();
+    }
+    setStatus(`Saved ${files.length} file${files.length > 1 ? "s" : ""} to “${dir.name}”.`);
+  } catch (err) {
+    setStatus(`Couldn't write files: ${err?.message || err?.name || "error"}`, true);
+  }
 }
 
 function downloadZip() {
