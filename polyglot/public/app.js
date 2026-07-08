@@ -269,6 +269,7 @@ function startBuilding() {
   buildBtn.disabled = true;
   buildBtn.textContent = "Building…";
   stopBtn.hidden = false;
+  statusEl.classList.add("busy");
   setStatus("Thinking…");
 }
 
@@ -277,6 +278,7 @@ function finishBuilding() {
   buildBtn.disabled = false;
   buildBtn.textContent = "Build it";
   stopBtn.hidden = true;
+  statusEl.classList.remove("busy");
   updateOutputBar();
 }
 
