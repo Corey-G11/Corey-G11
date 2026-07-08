@@ -28,8 +28,8 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   models vary run to run, so you can roll again for a different take.
 - **Light or dark** — a theme toggle in the header, remembered per browser and
   defaulting to your system preference.
-- **A modern look** — a gradient-mesh background, glass panels, and a violet
-  accent, with subtle motion on hover and a live pulse while it's building.
+- **A clean, SaaS-dashboard look** — solid cards, crisp borders, and a
+  confident blue accent, with a live status pulse while it's building.
 
 ## Requirements
 
