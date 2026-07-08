@@ -28,8 +28,9 @@ server itself has **zero npm dependencies** (just Node's built-ins).
   models vary run to run, so you can roll again for a different take.
 - **Light or dark** — a theme toggle in the header, remembered per browser and
   defaulting to your system preference.
-- **A clean, SaaS-dashboard look** — solid cards, crisp borders, and a
-  confident blue accent, with a live status pulse while it's building.
+- **A terminal/matrix look** — phosphor green on black with CRT scanlines,
+  monospace everywhere, and a blinking cursor; the light theme is a
+  "paper terminal" with dark-green ink.
 
 ## Requirements
 
