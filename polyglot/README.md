@@ -74,6 +74,22 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 Then open **http://localhost:3000**. If Ollama isn't running or the model
 isn't pulled yet, the app tells you exactly what to run.
 
+## Desktop icon (Windows)
+
+Don't want to remember any commands? After the one-time setup above:
+
+1. In the `polyglot` folder, double-click **`Setup Desktop Shortcut.bat`**.
+   A window will briefly appear and confirm a **Polyglot** icon was added to
+   your Desktop. (If Windows shows a security prompt, click **More info** →
+   **Run anyway** — it's just a local script, not downloaded from the internet.)
+2. From then on, **double-click the Polyglot icon on your Desktop** to start
+   the app. It opens a window (that's the running server — keep it open while
+   you use the app) and launches your browser automatically.
+3. To stop Polyglot, close that window.
+
+You only need to do step 1 once. If you ever move the `polyglot` folder,
+re-run `Setup Desktop Shortcut.bat` to point the icon at the new location.
+
 ## How it works
 
 - `server.js` — a zero-dependency Node HTTP server. It serves the UI, exposes
