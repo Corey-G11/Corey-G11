@@ -29,8 +29,9 @@ server itself has **zero npm dependencies** (just Node's built-ins).
 - **Light or dark** — a theme toggle in the header, remembered per browser and
   defaulting to your system preference.
 - **A terminal/matrix look** — phosphor green on black with CRT scanlines,
-  monospace everywhere, and a blinking cursor; the light theme is a
-  "paper terminal" with dark-green ink.
+  falling "digital rain" in the background, monospace everywhere, and a
+  blinking cursor; the light theme is a "paper terminal" with dark-green ink.
+  (The rain switches off automatically if your OS prefers reduced motion.)
 
 ## Requirements
 

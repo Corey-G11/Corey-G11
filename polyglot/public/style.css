@@ -75,6 +75,15 @@ body {
   flex-direction: column;
 }
 
+/* Digital rain — fixed canvas behind all content (negative z-index keeps it
+   under normal-flow elements; opaque panels cover it where text lives). */
+#rain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* CRT scanlines — a fixed, non-interactive overlay across the whole page. */
 body::before {
   content: "";
@@ -105,6 +114,7 @@ body::before {
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--border);
+  background: var(--bg); /* solid chrome — keeps the rain out from behind the header text */
 }
 .brand { display: flex; align-items: center; gap: 14px; }
 .icon-btn {
@@ -414,6 +424,7 @@ button.small { padding: 6px 12px; font-size: 12.5px; font-weight: 600; }
   font-size: 11.5px;
   padding: 16px;
   border-top: 1px solid var(--border);
+  background: var(--bg); /* solid chrome, same as the topbar */
 }
 
 @media (max-width: 640px) {
@@ -425,5 +436,6 @@ button.small { padding: 6px 12px; font-size: 12.5px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .cursor::after, h1::after { animation: none; }
   .status.busy::before { animation: none; }
+  #rain { display: none; }
   * { transition-duration: 0.01ms !important; }
 }
